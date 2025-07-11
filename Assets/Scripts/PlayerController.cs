@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
 
     private CharacterController controller;
     private new Camera camera;
-    private float cameraAngle = 0.0f;
+    private float cameraAngle;
     private Vector3 velocity;
     private bool isJumping = false;
 
@@ -17,10 +17,12 @@ public class PlayerController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         camera = GetComponentInChildren<Camera>();
+        cameraAngle = camera.transform.localEulerAngles.x;
     }
 
     void Update()
     {
+        Debug.Log(transform.eulerAngles.y);
         SetVelocityFromInput();
         AddVelocityFromGravity();
         controller.Move(velocity * Time.deltaTime);
