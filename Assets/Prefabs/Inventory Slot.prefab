@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 8884678314708308418}
   - component: {fileID: 4962071575732945844}
   - component: {fileID: 5425866394733892631}
+  - component: {fileID: 5978738332119260840}
   m_Layer: 5
   m_Name: Inventory Slot
   m_TagString: Untagged
@@ -77,6 +78,20 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &5978738332119260840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1296966723602450390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9ed80b2d77787b41baf40a06470d138, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  itemSpriteImage: {fileID: 8107911720539983301}
+  stackText: {fileID: 4343732706843369299}
 --- !u!1 &3613898330558377265
 GameObject:
   m_ObjectHideFlags: 0
@@ -136,7 +151,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -187,7 +202,7 @@ RectTransform:
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 72, y: 20}
   m_Pivot: {x: 1, y: 0}
 --- !u!222 &4414537821626991828
 CanvasRenderer:
@@ -211,7 +226,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -282,7 +297,7 @@ MonoBehaviour:
   m_VertexBufferAutoSizeReduction: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 138.87321, y: 31.589935, z: 2.6451035, w: 0.69607544}
+  m_margin: {x: 7.0832214, y: 1.6022034, z: 2.6451035, w: 0.69607544}
   m_isUsingLegacyAnimationComponent: 0
   m_isVolumetricText: 0
   m_hasFontAssetChanged: 0

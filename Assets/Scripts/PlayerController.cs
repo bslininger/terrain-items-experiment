@@ -22,7 +22,6 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        Debug.Log(transform.eulerAngles.y);
         SetVelocityFromInput();
         AddVelocityFromGravity();
         controller.Move(velocity * Time.deltaTime);

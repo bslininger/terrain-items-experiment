@@ -1,53 +1,82 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
+using System.Collections.Generic;
 
 public class InventoryPanelController : MonoBehaviour
 {
     [SerializeField] private Inventory playerInventory;
     [SerializeField] private GameObject slotPrefab;
+    private GameObject[] inventorySlots;
 
     private void OnEnable()
     {
-        EventManager.InventoryUpdateEvent += PopulatePanelFromInventory;
+        EventManager.InventoryUpdateEvent += UpdateDirtySlots;
+        PopulatePanelFromInventory();
     }
 
     private void OnDisable()
     {
-        EventManager.InventoryUpdateEvent -= PopulatePanelFromInventory;
+        EventManager.InventoryUpdateEvent -= UpdateDirtySlots;
+        DestroyAllSlots();
     }
 
-    void PopulatePanelFromInventory()
+     void PopulatePanelFromInventory()
     {
-        int filledSlots = 0;
-        ClearAllSlots();
-        foreach ((Item, int) slot in playerInventory.EnumerateInventory())
+        // First, generate all slots
+        inventorySlots = new GameObject[playerInventory.InventorySize];
+        for (int index = 0; index < playerInventory.InventorySize; ++index)
         {
-            GameObject newInventorySlot = Instantiate(slotPrefab, transform);
-            Transform itemImageTransform = newInventorySlot.transform.GetChild(0);
-            Transform stackTextTransform = newInventorySlot.transform.GetChild(1);
-            itemImageTransform.GetComponent<Image>().sprite = slot.Item1.icon;
-            itemImageTransform.gameObject.SetActive(true);
-            if (slot.Item2 > 1)
-            {
-                stackTextTransform.GetComponent<TextMeshProUGUI>().text = slot.Item2.ToString();
-                stackTextTransform.gameObject.SetActive(true);
-            }
-            filledSlots += 1;
+            inventorySlots[index] = Instantiate(slotPrefab, transform);
+            inventorySlots[index].name = $"Inventory Slot {index}";
+            InventorySlotUIController slotUIController = inventorySlots[index].transform.GetComponent<InventorySlotUIController>();
+            playerInventory.RegisterUIInventorySlot(slotUIController, index);
         }
 
-        Debug.Log($"Filled slots: {filledSlots}");
-
-        for (int i = filledSlots + 1; i <= playerInventory.InventorySize; ++i)
-            Instantiate(slotPrefab, transform);
+        // Now, put inventory items into their proper slots in the inventory panel, based on their index locations in the inventory itself
+        for(int index = 0; index < playerInventory.InventorySize; ++index)
+        {
+            Inventory.InventoryEntry entry = playerInventory[index];
+            if (entry == null)
+            {
+                continue;
+            }
+            InventorySlotUIController slotUIController = inventorySlots[index].transform.GetComponent<InventorySlotUIController>();
+            slotUIController.SetSlot(entry);
+        }
     }
 
-    void ClearAllSlots()
+    void UpdateDirtySlots(int[] indicesToUpdate)
     {
-        for (int i = transform.childCount - 1; i >= 0; --i)
+        foreach (int indexToUpdate in indicesToUpdate)
         {
-            Transform child = transform.GetChild(i);
+            if (indexToUpdate >= 0)  // index -1 (Inventory.CursorSlotIndex) is used for the cursor inventory slot
+            {
+                UpdateSlot(indexToUpdate, playerInventory[indexToUpdate]);
+            }
+        }
+    }
+
+    void UpdateSlot(int index, Inventory.InventoryEntry newEntry)
+    {
+        InventorySlotUIController slotUIController = inventorySlots[index].transform.GetComponent<InventorySlotUIController>();
+        if (newEntry == null)
+        {
+            slotUIController.EmptySlot();
+        }
+        else
+        {
+            slotUIController.SetSlot(newEntry);
+        }
+    }
+
+    void DestroyAllSlots()
+    {
+        foreach (Transform child in transform)
+        {
             Destroy(child.gameObject);
         }
+        inventorySlots = null;
     }
 }
