@@ -7,8 +7,12 @@ public class InventorySlotUIController : MonoBehaviour, IPointerClickHandler
 {
     [SerializeField] private Image itemSpriteImage;
     [SerializeField] private TextMeshProUGUI stackText;
-
     private Inventory.InventoryEntry inventoryEntry;
+
+    private bool hasStack()
+    {
+        return (inventoryEntry?.item?.IsStackable ?? false) && inventoryEntry.stackSize > 1;
+    }
 
     public void SetSlot(Inventory.InventoryEntry entry)
     {
@@ -28,16 +32,21 @@ public class InventorySlotUIController : MonoBehaviour, IPointerClickHandler
         stackText.gameObject.SetActive(false);
     }
 
-    //public void OnPointerClick(PointerEventData eventData)
-    //{
-    //    if (inventoryEntry == null)
-    //        Debug.Log("I'm empty!");
-    //    else
-    //        Debug.Log($"I contain {inventoryEntry.item.itemName}!  {inventoryEntry.stackSize} of them in fact!");
-    //}
-
     public void OnPointerClick(PointerEventData eventData)
     {
-        EventManager.TriggerInventorySlotClickedEvent(this);
+        if (eventData.button != PointerEventData.InputButton.Left)
+        {
+            return;
+        }
+
+        bool pressingShift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        if (pressingShift && hasStack())
+        {
+            EventManager.TriggerInventorySlotClickedStackSelectionEvent(this);
+        }
+        else
+        {
+            EventManager.TriggerInventorySlotClickedEvent(this);
+        }
     }
 }

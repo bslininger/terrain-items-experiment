@@ -5,14 +5,20 @@ public class Inventory : MonoBehaviour
 {
     [SerializeField] private int inventorySize = 30;
     [SerializeField] private InventoryItemCursorFollower itemCursorFollowerController;
+    [SerializeField] private UIManager uiManager;
 
     private Dictionary<InventorySlotUIController, int> slotUIControllerToIndexMap;
 
 
-    public class InventoryEntry
+    public class InventoryEntry : IItemDisplayInformation
     {
         public Item item { get; }
         public int stackSize { get; private set; }
+
+        public string ItemName => item.itemName;
+        public int StackSize => stackSize;
+        public int MaxStackSize => item.maxStack;
+        public Sprite Icon => item.icon;
 
         public InventoryEntry(Item item, int stackSize)
         {
@@ -25,6 +31,14 @@ public class Inventory : MonoBehaviour
 
             this.item = item;
             this.stackSize = stackSize;
+        }
+
+        public InventoryEntry(InventoryEntry other)
+        {
+            if (other == null)
+                throw new System.ArgumentNullException("Tried to copy frum a null InventoryEntry");
+            item = other.item;
+            stackSize = other.stackSize;
         }
 
         public void AddToStack(int amountToAdd)
@@ -50,6 +64,13 @@ public class Inventory : MonoBehaviour
 
             stackSize = newSize;
         }
+
+        public void SetStackSize(int newStackSize)
+        {
+            if (newStackSize < 1 || newStackSize > item.maxStack)
+                throw new System.ArgumentException($"Tried to set stack size to {newStackSize} which is out of bounds (1 to {item.maxStack}");
+            stackSize = newStackSize;
+        }
     }
 
     private InventoryEntry[] inventoryEntries;
@@ -68,11 +89,13 @@ public class Inventory : MonoBehaviour
     private void OnEnable()
     {
         EventManager.InventorySlotClickedEvent += HandleUIInventorySlotClicked;
+        EventManager.InventorySlotClickedStackSelectionEvent += HandleUIInventorySlotClickedForStackSelection;
     }
 
     private void OnDisable()
     {
         EventManager.InventorySlotClickedEvent -= HandleUIInventorySlotClicked;
+        EventManager.InventorySlotClickedStackSelectionEvent -= HandleUIInventorySlotClickedForStackSelection;
     }
 
     private void RefreshSlots(params int[] indices)
@@ -88,36 +111,36 @@ public class Inventory : MonoBehaviour
             return;
         }
 
-        InventoryEntry clickedEntryCopy = inventoryEntries[index]; // copy of inventoryEntries[index] -- changing this won't change inventoryEntries[index]
+        InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
         itemCursorFollowerController.Activate();
         if (cursorInventoryEntry == null)
         {
             // Pull item from inventory onto cursor
-            cursorInventoryEntry = clickedEntryCopy;
+            cursorInventoryEntry = clickedEntry;
             inventoryEntries[index] = null;
         }
         else // Item in cursor slot
         {
-            if (clickedEntryCopy == null) {
+            if (clickedEntry == null) {
                 // Empty inventory slot: move item from cursor to inventory slot
                 inventoryEntries[index] = cursorInventoryEntry;
                 cursorInventoryEntry = null;
             }
             else
             {
-                if (cursorInventoryEntry.item != clickedEntryCopy.item)
+                if (cursorInventoryEntry.item != clickedEntry.item)
                 {
                     // Different items: swap
                     inventoryEntries[index] = cursorInventoryEntry;
-                    cursorInventoryEntry = clickedEntryCopy;
+                    cursorInventoryEntry = clickedEntry;
                 }
                 else
                 {
-                    if (clickedEntryCopy.stackSize < clickedEntryCopy.item.maxStack)
+                    if (clickedEntry.stackSize < clickedEntry.item.maxStack)
                     {
                         // Same item, and there is room for more in its stack in the inventory slot: add to stack, and if stack fills, keep remainder on cursor
                         int stackOnCursor = cursorInventoryEntry.stackSize;
-                        int remainingSpace = clickedEntryCopy.item.maxStack - clickedEntryCopy.stackSize;
+                        int remainingSpace = clickedEntry.item.maxStack - clickedEntry.stackSize;
                         int amountAddedToInventoryStack = Mathf.Min(stackOnCursor, remainingSpace);
                         inventoryEntries[index].AddToStack(amountAddedToInventoryStack);
                         if (stackOnCursor - amountAddedToInventoryStack > 0)
@@ -133,12 +156,22 @@ public class Inventory : MonoBehaviour
                     {
                         // Same item, but the inventory slot's stack is full: swap
                         inventoryEntries[index] = cursorInventoryEntry;
-                        cursorInventoryEntry = clickedEntryCopy;
+                        cursorInventoryEntry = clickedEntry;
                     }
                 }
             }
         }
         RefreshSlots(CursorSlotIndex, index);
+    }
+
+    private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller)
+    {
+        if (!slotUIControllerToIndexMap.TryGetValue(controller, out int index))
+        {
+            Debug.LogWarning("Clicked slot not registered with Inventory!");
+            return;
+        }
+        uiManager.ShowStackSizeSelectorPanel(new InventoryEntry(inventoryEntries[index]));
     }
 
     public void AddItem(InventoryEntry entryToAdd, int? inventoryEntryIndexChoice = null)
