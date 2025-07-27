@@ -10,8 +10,15 @@ public class InventorySlotUIController : MonoBehaviour, IPointerClickHandler
     private Inventory.InventoryEntry inventoryEntry;
 
     public IInputLockProvider InputLockProvider { get; set; }
+    public enum ClickType: int
+    {
+        Regular,
+        Shift,
+        Ctrl
+    }
+    public ClickType SlotClickType { get; private set; }
 
-    private bool hasStack()
+    private bool HasStack()
     {
         return (inventoryEntry?.item?.IsStackable ?? false) && inventoryEntry.stackSize > 1;
     }
@@ -53,12 +60,20 @@ public class InventorySlotUIController : MonoBehaviour, IPointerClickHandler
         }
 
         bool pressingShift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-        if (pressingShift && hasStack())
+        bool pressingCtrl = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+        if (pressingShift && HasStack())
         {
+            SlotClickType = ClickType.Shift;
             EventManager.TriggerInventorySlotClickedStackSelectionEvent(this);
+        }
+        else if (pressingCtrl && HasStack())
+        {
+            SlotClickType = ClickType.Ctrl;
+            EventManager.TriggerInventorySlotClickedEvent(this);
         }
         else
         {
+            SlotClickType = ClickType.Regular;
             EventManager.TriggerInventorySlotClickedEvent(this);
         }
     }

@@ -113,6 +113,13 @@ public class Inventory : MonoBehaviour
 
         InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
         itemCursorFollowerController.Activate();
+
+        if (controller.SlotClickType == InventorySlotUIController.ClickType.Ctrl && !ItemInCursorSlot)
+        {
+            HandleUIInventorySlotClickedForSinglePull(clickedEntry, index);
+            return;
+        }
+
         if (!ItemInCursorSlot)
         {
             // Pull item from inventory onto cursor
@@ -161,6 +168,14 @@ public class Inventory : MonoBehaviour
                 }
             }
         }
+        RefreshSlots(CursorSlotIndex, index);
+    }
+
+    private void HandleUIInventorySlotClickedForSinglePull(InventoryEntry clickedEntry, int index)
+    {
+        // This function only runs if the clicked slot has a stackable item with at least 2 in it, so no need to check for stack size here.
+        clickedEntry.RemoveFromStack(1);
+        cursorInventoryEntry = new InventoryEntry(clickedEntry.item, 1);
         RefreshSlots(CursorSlotIndex, index);
     }
 
