@@ -89,13 +89,11 @@ public class Inventory : MonoBehaviour
     private void OnEnable()
     {
         EventManager.InventorySlotClickedEvent += HandleUIInventorySlotClicked;
-        EventManager.InventorySlotClickedStackSelectionEvent += HandleUIInventorySlotClickedForStackSelection;
     }
 
     private void OnDisable()
     {
         EventManager.InventorySlotClickedEvent -= HandleUIInventorySlotClicked;
-        EventManager.InventorySlotClickedStackSelectionEvent -= HandleUIInventorySlotClickedForStackSelection;
     }
 
     private void RefreshSlots(params int[] indices)
@@ -114,9 +112,15 @@ public class Inventory : MonoBehaviour
         InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
         itemCursorFollowerController.Activate();
 
+        // Special keypresses: ctrl-click to pick 1 item from the stack, shift-click to pick up a specified number from the stack
         if (controller.SlotClickType == InventorySlotUIController.ClickType.Ctrl && !ItemInCursorSlot)
         {
             HandleUIInventorySlotClickedForSinglePull(clickedEntry, index);
+            return;
+        }
+        if (controller.SlotClickType == InventorySlotUIController.ClickType.Shift && !ItemInCursorSlot)
+        {
+            HandleUIInventorySlotClickedForStackSelection(controller, clickedEntry, index);
             return;
         }
 
@@ -179,22 +183,8 @@ public class Inventory : MonoBehaviour
         RefreshSlots(CursorSlotIndex, index);
     }
 
-    private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller)
+    private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller, InventoryEntry clickedEntry, int index)
     {
-        if (!slotUIControllerToIndexMap.TryGetValue(controller, out int index))
-        {
-            Debug.LogWarning("Clicked slot not registered with Inventory!");
-            return;
-        }
-
-        if (ItemInCursorSlot)
-        {
-            // Fall back to handling this as if it were a regular click.
-            HandleUIInventorySlotClicked(controller);
-            return;
-        }
-
-        InventoryEntry clickedEntry = inventoryEntries[index];
         Action<int> acceptButtonAction = (amountTaken) =>
         {
             itemCursorFollowerController.Activate();

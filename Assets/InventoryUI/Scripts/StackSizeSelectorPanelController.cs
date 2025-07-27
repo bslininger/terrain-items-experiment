@@ -67,12 +67,11 @@ public class StackSizeSelectorPanelController : MonoBehaviour
     public void OnAcceptButtonClicked()
     {
         onAccept?.Invoke(currentSelectedAmount);
-        Destroy(gameObject);
     }
 
     public void OnCancelButtonClicked()
     {
-        Destroy(gameObject);
+        onCancel?.Invoke();
     }
 
     public void IncrementValue()

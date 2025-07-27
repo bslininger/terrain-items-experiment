@@ -6,7 +6,6 @@ public static class EventManager
 {
     public static event Action<int[]> InventoryUpdateEvent;
     public static event System.Action<InventorySlotUIController> InventorySlotClickedEvent;
-    public static event System.Action<InventorySlotUIController> InventorySlotClickedStackSelectionEvent;
 
     public static void TriggerInventoryUpdateEvent(int[] indicesToUpdate)
     {
@@ -16,10 +15,5 @@ public static class EventManager
     public static void TriggerInventorySlotClickedEvent(InventorySlotUIController slotUIController)
     {
         InventorySlotClickedEvent.Invoke(slotUIController);
-    }
-
-    public static void TriggerInventorySlotClickedStackSelectionEvent(InventorySlotUIController slotUIController)
-    {
-        InventorySlotClickedStackSelectionEvent.Invoke(slotUIController);
     }
 }

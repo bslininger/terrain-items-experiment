@@ -43,12 +43,6 @@ public class InventorySlotUIController : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (InputLockProvider == null)
-        {
-            Debug.LogError($"[InventorySlotUIController] InputLockProvider not set! GameObject: {gameObject.name}", gameObject);
-            return; // Optional: bail out early to avoid crash
-        }
-
         if (InputLockProvider.InputLocked(UIInputLock.InventoryInteraction))
         {
             return;
@@ -64,17 +58,16 @@ public class InventorySlotUIController : MonoBehaviour, IPointerClickHandler
         if (pressingShift && HasStack())
         {
             SlotClickType = ClickType.Shift;
-            EventManager.TriggerInventorySlotClickedStackSelectionEvent(this);
         }
         else if (pressingCtrl && HasStack())
         {
             SlotClickType = ClickType.Ctrl;
-            EventManager.TriggerInventorySlotClickedEvent(this);
         }
         else
         {
             SlotClickType = ClickType.Regular;
-            EventManager.TriggerInventorySlotClickedEvent(this);
         }
+
+        EventManager.TriggerInventorySlotClickedEvent(this);
     }
 }
