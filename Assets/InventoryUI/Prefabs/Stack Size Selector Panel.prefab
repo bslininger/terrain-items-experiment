@@ -172,7 +172,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 7855969452109294196}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7251874479268463292}
+        m_TargetAssemblyTypeName: StackSizeSelectorPanelController, Assembly-CSharp
+        m_MethodName: OnAcceptButtonClicked
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &761466926428477774
 GameObject:
   m_ObjectHideFlags: 0
@@ -368,7 +380,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1837037896801364067}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7251874479268463292}
+        m_TargetAssemblyTypeName: StackSizeSelectorPanelController, Assembly-CSharp
+        m_MethodName: OnCancelButtonClicked
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &1829223389578988625
 GameObject:
   m_ObjectHideFlags: 0
@@ -741,7 +765,6 @@ MonoBehaviour:
   inputField: {fileID: 2490934180559282503}
   itemNameText: {fileID: 2463379177656296687}
   slotUIController: {fileID: 4621038668762720875}
-  item: {fileID: 11400000, guid: 5dddd583fbff8864a8b43b1278dc7c7d, type: 2}
 --- !u!1 &3074139585045923412
 GameObject:
   m_ObjectHideFlags: 0
@@ -755,7 +778,7 @@ GameObject:
   - component: {fileID: 6181858030544212129}
   - component: {fileID: 2490934180559282503}
   m_Layer: 5
-  m_Name: InputField (TMP)
+  m_Name: Numerical Input Field
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

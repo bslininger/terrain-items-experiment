@@ -7,3 +7,8 @@ public interface IItemDisplayInformation
     int MaxStackSize { get; }
     UnityEngine.Sprite Icon { get; }
 }
+
+public interface IInputLockProvider
+{
+    bool InputLocked(UIInputLock lockType);
+}

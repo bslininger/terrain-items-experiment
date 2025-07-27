@@ -31,6 +31,7 @@ public class InventoryPanelController : MonoBehaviour
             inventorySlots[index] = Instantiate(slotPrefab, transform);
             inventorySlots[index].name = $"Inventory Slot {index}";
             InventorySlotUIController slotUIController = inventorySlots[index].transform.GetComponent<InventorySlotUIController>();
+            slotUIController.InputLockProvider = UIManager.Instance;
             playerInventory.RegisterUIInventorySlot(slotUIController, index);
         }
 

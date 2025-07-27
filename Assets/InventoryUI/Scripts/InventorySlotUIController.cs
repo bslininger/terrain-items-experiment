@@ -9,6 +9,8 @@ public class InventorySlotUIController : MonoBehaviour, IPointerClickHandler
     [SerializeField] private TextMeshProUGUI stackText;
     private Inventory.InventoryEntry inventoryEntry;
 
+    public IInputLockProvider InputLockProvider { get; set; }
+
     private bool hasStack()
     {
         return (inventoryEntry?.item?.IsStackable ?? false) && inventoryEntry.stackSize > 1;
@@ -34,6 +36,17 @@ public class InventorySlotUIController : MonoBehaviour, IPointerClickHandler
 
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (InputLockProvider == null)
+        {
+            Debug.LogError($"[InventorySlotUIController] InputLockProvider not set! GameObject: {gameObject.name}", gameObject);
+            return; // Optional: bail out early to avoid crash
+        }
+
+        if (InputLockProvider.InputLocked(UIInputLock.InventoryInteraction))
+        {
+            return;
+        }
+
         if (eventData.button != PointerEventData.InputButton.Left)
         {
             return;

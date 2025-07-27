@@ -66,6 +66,7 @@ public class InventoryItemCursorFollower : MonoBehaviour
             slotBackgroundImage.raycastTarget = false;
             slotBackgroundImage.enabled = false;
             InventorySlotUIController slotUIController = slotUIElement.transform.GetComponent<InventorySlotUIController>();
+            slotUIController.InputLockProvider = UIManager.Instance;
             slotUIController.SetSlot(cursorEntry);
             gameObject.SetActive(true);
         }

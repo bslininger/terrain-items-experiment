@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -5,7 +6,6 @@ public class Inventory : MonoBehaviour
 {
     [SerializeField] private int inventorySize = 30;
     [SerializeField] private InventoryItemCursorFollower itemCursorFollowerController;
-    [SerializeField] private UIManager uiManager;
 
     private Dictionary<InventorySlotUIController, int> slotUIControllerToIndexMap;
 
@@ -113,7 +113,7 @@ public class Inventory : MonoBehaviour
 
         InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
         itemCursorFollowerController.Activate();
-        if (cursorInventoryEntry == null)
+        if (!ItemInCursorSlot)
         {
             // Pull item from inventory onto cursor
             cursorInventoryEntry = clickedEntry;
@@ -171,7 +171,42 @@ public class Inventory : MonoBehaviour
             Debug.LogWarning("Clicked slot not registered with Inventory!");
             return;
         }
-        uiManager.ShowStackSizeSelectorPanel(new InventoryEntry(inventoryEntries[index]));
+
+        if (ItemInCursorSlot)
+        {
+            // Fall back to handling this as if it were a regular click.
+            HandleUIInventorySlotClicked(controller);
+            return;
+        }
+
+        InventoryEntry clickedEntry = inventoryEntries[index];
+        Action<int> acceptButtonAction = (amountTaken) =>
+        {
+            itemCursorFollowerController.Activate();
+            if (amountTaken == clickedEntry.stackSize)
+            {
+                cursorInventoryEntry = clickedEntry;
+                inventoryEntries[index] = null;
+            }
+            else
+            {
+                clickedEntry.RemoveFromStack(amountTaken);
+                cursorInventoryEntry = new InventoryEntry(clickedEntry.item, amountTaken);
+            }
+            RefreshSlots(CursorSlotIndex, index);
+        };
+
+        // Get location for stack size selector panel to open, then open it
+
+        RectTransform inventorySlotRectTransform = controller.GetComponent<RectTransform>();
+        Vector2 slotTransformSize = inventorySlotRectTransform.rect.size;  // (width, height) pair for the slot's size
+        Vector2 slotTransformPivotOffset = inventorySlotRectTransform.pivot;  // Represents the pivot offset within the slot transform as a pair (x-offset, y-offset). The values range from 0 to 1, where 0 is the left (x) or bottom (y).
+        Vector2 bottomRightOffset = new Vector2((1.0f - slotTransformPivotOffset.x) * slotTransformSize.x, (0.0f - slotTransformPivotOffset.y) * slotTransformSize.y); // Calculate the offset of the bottom-right corner from the pivot location
+        RectTransform inventoryPanelRectTransform = inventorySlotRectTransform.GetComponentInParent<InventoryPanelController>().GetComponent<RectTransform>();
+        Vector2 bottomRightCorner = inventoryPanelRectTransform.anchoredPosition + inventorySlotRectTransform.anchoredPosition + bottomRightOffset;
+        Vector2 stackSizeSelectorPanelPosition = bottomRightCorner;
+
+        UIManager.Instance.ShowStackSizeSelectorPanel(new InventoryEntry(clickedEntry), stackSizeSelectorPanelPosition, acceptButtonAction);
     }
 
     public void AddItem(InventoryEntry entryToAdd, int? inventoryEntryIndexChoice = null)

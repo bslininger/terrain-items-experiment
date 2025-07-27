@@ -11,7 +11,8 @@ public class StackSizeSelectorPanelController : MonoBehaviour
     [SerializeField] private InventorySlotUIController slotUIController;
     private Inventory.InventoryEntry inventoryEntry;
 
-    private Action<int> onAccept; // This is the callback stored inside the controller
+    private Action<int> onAccept; // This is the callback for the Accept button, defined outside this controller but stored inside it. Destroying afterward handled outside as well.
+    private Action onCancel;
     private int currentSelectedAmount => Mathf.RoundToInt(slider.value);
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -58,9 +59,20 @@ public class StackSizeSelectorPanelController : MonoBehaviour
         onAccept = callback;
     }
 
+    public void SetCancelAction(Action callback)
+    {
+        onCancel = callback;
+    }
+
     public void OnAcceptButtonClicked()
     {
         onAccept?.Invoke(currentSelectedAmount);
+        Destroy(gameObject);
+    }
+
+    public void OnCancelButtonClicked()
+    {
+        Destroy(gameObject);
     }
 
     public void IncrementValue()
