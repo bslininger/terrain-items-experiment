@@ -6,9 +6,9 @@ InputManager:
   serializedVersion: 2
   m_Axes:
   - serializedVersion: 3
-    m_Name: Horizontal
-    descriptiveName: 
-    descriptiveNegativeName: 
+    m_Name: Turn
+    descriptiveName: Turn the character to the right
+    descriptiveNegativeName: Turn the character to the left
     negativeButton: left
     positiveButton: right
     altNegativeButton: a
@@ -22,9 +22,41 @@ InputManager:
     axis: 0
     joyNum: 0
   - serializedVersion: 3
+    m_Name: Horizontal
+    descriptiveName: Turn the character to the right
+    descriptiveNegativeName: Turn the character to the left
+    negativeButton: left
+    positiveButton: right
+    altNegativeButton: a
+    altPositiveButton: d
+    gravity: 3
+    dead: 0.001
+    sensitivity: 3
+    snap: 1
+    invert: 0
+    type: 0
+    axis: 0
+    joyNum: 0
+  - serializedVersion: 3
+    m_Name: Walk
+    descriptiveName: Walk forward
+    descriptiveNegativeName: Walk backward
+    negativeButton: down
+    positiveButton: up
+    altNegativeButton: s
+    altPositiveButton: w
+    gravity: 3
+    dead: 0.001
+    sensitivity: 3
+    snap: 1
+    invert: 0
+    type: 0
+    axis: 0
+    joyNum: 0
+  - serializedVersion: 3
     m_Name: Vertical
-    descriptiveName: 
-    descriptiveNegativeName: 
+    descriptiveName: Walk forward
+    descriptiveNegativeName: Walk backward
     negativeButton: down
     positiveButton: up
     altNegativeButton: s
@@ -150,19 +182,35 @@ InputManager:
     axis: 2
     joyNum: 0
   - serializedVersion: 3
-    m_Name: Horizontal
-    descriptiveName: 
-    descriptiveNegativeName: 
-    negativeButton: 
-    positiveButton: 
+    m_Name: Strafe
+    descriptiveName: Strafe to the right
+    descriptiveNegativeName: Strafe to the left
+    negativeButton: q
+    positiveButton: e
     altNegativeButton: 
     altPositiveButton: 
-    gravity: 0
-    dead: 0.19
-    sensitivity: 1
-    snap: 0
+    gravity: 3
+    dead: 0.001
+    sensitivity: 3
+    snap: 1
     invert: 0
-    type: 2
+    type: 0
+    axis: 0
+    joyNum: 0
+  - serializedVersion: 3
+    m_Name: Horizontal
+    descriptiveName: Strafe to the right
+    descriptiveNegativeName: Strafe to the left
+    negativeButton: q
+    positiveButton: e
+    altNegativeButton: 
+    altPositiveButton: 
+    gravity: 3
+    dead: 0.001
+    sensitivity: 3
+    snap: 1
+    invert: 0
+    type: 0
     axis: 0
     joyNum: 0
   - serializedVersion: 3
