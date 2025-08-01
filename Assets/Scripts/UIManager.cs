@@ -19,6 +19,7 @@ public class UIManager : MonoBehaviour, IInputLockProvider
     [SerializeField] private GameObject stackSizeSelectorPrefab;
 
     // Controllers
+    [SerializeField] private InventoryPanelController inventoryPanelController;
     private StackSizeSelectorPanelController activeStackSizeSelectorPanelController;
 
     // Accessors
@@ -41,7 +42,18 @@ public class UIManager : MonoBehaviour, IInputLockProvider
         }
     }
 
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.I) && !InputLocked(UIInputLock.InventoryInteraction))
+        {
+            inventoryPanelController.ToggleInventoryPanel();
+        }
+    }
 
+    public void ActivateInventoryPanel()
+    {
+        inventoryPanelController.ActivateInventoryPanel();
+    }
 
     public void ShowStackSizeSelectorPanel(Inventory.InventoryEntry inventoryEntry, Vector2 location, Action<int> acceptButtonAction)
     {
