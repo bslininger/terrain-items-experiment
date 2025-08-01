@@ -36,6 +36,7 @@ public class WorldInventoryItem : MonoBehaviour
             return;
         }
         Inventory.InventoryEntry itemEntry = new Inventory.InventoryEntry(itemData, 1);
+        UIManager.Instance.ActivateInventoryPanel();
         inventory.PutInventoryEntryInCursorSlot(itemEntry);
         Destroy(gameObject);
     }

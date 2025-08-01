@@ -22,8 +22,23 @@ public class InventoryPanelController : MonoBehaviour
         DestroyAllSlots();
     }
 
-     void PopulatePanelFromInventory()
+    public void ActivateInventoryPanel()
     {
+        gameObject.SetActive(true);
+    }
+
+    public void DeactivateInventoryPanel()
+    {
+        gameObject.SetActive(false);
+    }
+
+    public void ToggleInventoryPanel()
+    {
+        gameObject.SetActive(!gameObject.activeSelf);
+    }
+
+     void PopulatePanelFromInventory()
+     {
         // First, generate all slots
         inventorySlots = new GameObject[playerInventory.InventorySize];
         for (int index = 0; index < playerInventory.InventorySize; ++index)
