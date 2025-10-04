@@ -8,6 +8,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float mouseSensitivity = 3.0f;
 
     private CharacterController controller;
+    private InteractionManager interactionManager;
     private new Camera camera;
     private float cameraAngle;
     private Vector3 velocity;
@@ -16,6 +17,7 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        interactionManager = GetComponent<InteractionManager>();
         camera = GetComponentInChildren<Camera>();
         cameraAngle = camera.transform.localEulerAngles.x;
     }
@@ -30,6 +32,10 @@ public class PlayerController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
         {
             Jump();
+        }
+        if (Input.GetKeyDown(KeyCode.U))
+        {
+            interactionManager.InteractWithDoor();
         }
     }
 
