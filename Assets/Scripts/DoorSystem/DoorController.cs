@@ -19,13 +19,36 @@ public class DoorController : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (CanInteract() && Input.GetKeyDown(KeyCode.U))
+        //if (CanInteract() && Input.GetKeyDown(KeyCode.U))
+        //{
+        //    if (state == DoorState.Open)
+        //    {
+        //        if (doorOpeningRoutine == null)
+        //            Debug.LogError("Door was marked as Open, but no door opening coroutine was active.");
+        //        else
+        //        {
+        //            StopCoroutine(doorOpeningRoutine);
+        //            doorOpeningRoutine = null;
+        //        }
+        //    }
+        //    doorOpeningRoutine = StartCoroutine(OpenDoorSwing());
+        //}
+    }
+
+    private bool CanInteract()
+    {
+        return state == DoorState.Closed || state == DoorState.Open;
+    }
+
+    public void TryOpenDoor()
+    {
+        if (CanInteract())
         {
             if (state == DoorState.Open)
             {
@@ -39,11 +62,6 @@ public class DoorController : MonoBehaviour
             }
             doorOpeningRoutine = StartCoroutine(OpenDoorSwing());
         }
-    }
-
-    private bool CanInteract()
-    {
-        return state == DoorState.Closed || state == DoorState.Open;
     }
 
     IEnumerator OpenDoorSwing()
