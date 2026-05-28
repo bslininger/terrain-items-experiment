@@ -100,7 +100,6 @@ public class Inventory : MonoBehaviour
     {
         EventManager.TriggerInventoryUpdateEvent(indices);
     }
-
     private void HandleUIInventorySlotClicked(InventorySlotUIController controller)
     {
         if (!slotUIControllerToIndexMap.TryGetValue(controller, out int index))
@@ -109,96 +108,34 @@ public class Inventory : MonoBehaviour
             return;
         }
 
-        InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
         itemCursorFollowerController.Activate();
 
         // Special keypresses: ctrl-click to pick 1 item from the stack, shift-click to pick up a specified number from the stack
         if (controller.SlotClickType == InventorySlotUIController.ClickType.Ctrl && !ItemInCursorSlot)
         {
-            HandleUIInventorySlotClickedForSinglePull(clickedEntry, index);
+            HandleUIInventorySlotClickedForSinglePull(index);
             return;
         }
         if (controller.SlotClickType == InventorySlotUIController.ClickType.Shift && !ItemInCursorSlot)
         {
-            HandleUIInventorySlotClickedForStackSelection(controller, clickedEntry, index);
+            HandleUIInventorySlotClickedForStackSelection(controller, index);
             return;
         }
 
-        if (!ItemInCursorSlot)
-        {
-            // Pull item from inventory onto cursor
-            cursorInventoryEntry = clickedEntry;
-            inventoryEntries[index] = null;
-        }
-        else // Item in cursor slot
-        {
-            if (clickedEntry == null) {
-                // Empty inventory slot: move item from cursor to inventory slot
-                inventoryEntries[index] = cursorInventoryEntry;
-                cursorInventoryEntry = null;
-            }
-            else
-            {
-                if (cursorInventoryEntry.item != clickedEntry.item)
-                {
-                    // Different items: swap
-                    inventoryEntries[index] = cursorInventoryEntry;
-                    cursorInventoryEntry = clickedEntry;
-                }
-                else
-                {
-                    if (clickedEntry.stackSize < clickedEntry.item.maxStack)
-                    {
-                        // Same item, and there is room for more in its stack in the inventory slot: add to stack, and if stack fills, keep remainder on cursor
-                        int stackOnCursor = cursorInventoryEntry.stackSize;
-                        int remainingSpace = clickedEntry.item.maxStack - clickedEntry.stackSize;
-                        int amountAddedToInventoryStack = Mathf.Min(stackOnCursor, remainingSpace);
-                        inventoryEntries[index].AddToStack(amountAddedToInventoryStack);
-                        if (stackOnCursor - amountAddedToInventoryStack > 0)
-                        {
-                            cursorInventoryEntry.RemoveFromStack(amountAddedToInventoryStack);
-                        }
-                        else
-                        {
-                            cursorInventoryEntry = null;
-                        }
-                    }
-                    else
-                    {
-                        // Same item, but the inventory slot's stack is full: swap
-                        inventoryEntries[index] = cursorInventoryEntry;
-                        cursorInventoryEntry = clickedEntry;
-                    }
-                }
-            }
-        }
-        RefreshSlots(CursorSlotIndex, index);
+        InteractWithInventorySlot(index);
     }
 
-    private void HandleUIInventorySlotClickedForSinglePull(InventoryEntry clickedEntry, int index)
+    private void HandleUIInventorySlotClickedForSinglePull(int index)
     {
-        // This function only runs if the clicked slot has a stackable item with at least 2 in it, so no need to check for stack size here.
-        clickedEntry.RemoveFromStack(1);
-        cursorInventoryEntry = new InventoryEntry(clickedEntry.item, 1);
-        RefreshSlots(CursorSlotIndex, index);
+        TakeFromSlotIntoCursor(index, 1);
     }
 
-    private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller, InventoryEntry clickedEntry, int index)
+    private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller, int index)
     {
         Action<int> acceptButtonAction = (amountTaken) =>
         {
             itemCursorFollowerController.Activate();
-            if (amountTaken == clickedEntry.stackSize)
-            {
-                cursorInventoryEntry = clickedEntry;
-                inventoryEntries[index] = null;
-            }
-            else
-            {
-                clickedEntry.RemoveFromStack(amountTaken);
-                cursorInventoryEntry = new InventoryEntry(clickedEntry.item, amountTaken);
-            }
-            RefreshSlots(CursorSlotIndex, index);
+            TakeFromSlotIntoCursor(index, amountTaken);
         };
 
         // Get location for stack size selector panel to open, then open it
@@ -211,7 +148,151 @@ public class Inventory : MonoBehaviour
         Vector2 bottomRightCorner = inventoryPanelRectTransform.anchoredPosition + inventorySlotRectTransform.anchoredPosition + bottomRightOffset;
         Vector2 stackSizeSelectorPanelPosition = bottomRightCorner;
 
-        UIManager.Instance.ShowStackSizeSelectorPanel(new InventoryEntry(clickedEntry), stackSizeSelectorPanelPosition, acceptButtonAction);
+        UIManager.Instance.ShowStackSizeSelectorPanel(new InventoryEntry(inventoryEntries[index]), stackSizeSelectorPanelPosition, acceptButtonAction);
+    }
+
+    private void InteractWithInventorySlot(int index)
+    {
+        InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
+
+        if (!ItemInCursorSlot)
+        {
+            if (clickedEntry != null)
+            {
+                // Pull item from inventory onto cursor
+                TakeFromSlotIntoCursor(index, clickedEntry.stackSize);
+            }
+            // Otherwise, do nothing.
+            return;
+        }
+        else // Item in cursor slot
+        {
+            if (clickedEntry == null)
+            {
+                // Empty inventory slot: move item from cursor to inventory slot
+                PlaceFromCursorIntoSlot(index);
+                return;
+            }
+            else
+            {
+                if (cursorInventoryEntry.item != clickedEntry.item)
+                {
+                    // Different items: swap
+                    SwapCursorWithSlot(index);
+                    return;
+                }
+                else
+                {
+                    if (clickedEntry.stackSize < clickedEntry.item.maxStack)
+                    {
+                        // Same item, and there is room for more in its stack in the inventory slot: add to stack, and if stack fills, keep remainder on cursor
+                        MergeFromCursorIntoSlot(index);
+                        return;
+                    }
+                    else
+                    {
+                        // Same item, but the inventory slot's stack is full: swap
+                        SwapCursorWithSlot(index);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    private void TakeFromSlotIntoCursor(int index, int amount)
+    {
+        if (index < 0 || index >= inventoryEntries.Length)
+            throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
+        if (ItemInCursorSlot)
+            throw new InvalidOperationException("Tried to add an item to the cursor slot when it was already occupied.");
+
+        InventoryEntry sourceEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
+
+        if (sourceEntry == null)
+            throw new InvalidOperationException($"Tried to pull from inventory index {index}, but it was empty.");
+        if (amount <= 0 || amount > sourceEntry.stackSize)
+            throw new ArgumentOutOfRangeException(nameof(amount), $"Amount to pull must be positive and less than or equal to the amount currently in the inventory slot ({sourceEntry.stackSize}); was given {amount}");
+
+        if (amount < sourceEntry.stackSize)
+        {
+            cursorInventoryEntry = new InventoryEntry(sourceEntry.item, amount);
+            sourceEntry.RemoveFromStack(amount);
+        }
+        else
+        {
+            cursorInventoryEntry = sourceEntry;
+            inventoryEntries[index] = null;
+        }
+        RefreshSlots(CursorSlotIndex, index); // for now
+    }
+
+    private void PlaceFromCursorIntoSlot(int index)
+    {
+        if (index < 0 || index >= inventoryEntries.Length)
+            throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
+        if (!ItemInCursorSlot)
+            throw new InvalidOperationException("Tried to place an item from the cursor slot when it was empty.");
+
+        InventoryEntry destinationEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
+
+        if (destinationEntry != null)
+            throw new InvalidOperationException($"Tried to place an item into inventory index {index}, but it was already occupied.");
+
+        inventoryEntries[index] = cursorInventoryEntry;
+        cursorInventoryEntry = null;
+
+        RefreshSlots(CursorSlotIndex, index); // for now
+    }
+
+    private void MergeFromCursorIntoSlot(int index)
+    {
+        if (index < 0 || index >= inventoryEntries.Length)
+            throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
+        if (!ItemInCursorSlot)
+            throw new InvalidOperationException("Tried to place an item from the cursor slot when it was empty.");
+
+        InventoryEntry destinationEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
+
+        if (destinationEntry == null)
+            throw new InvalidOperationException($"Tried to merge the item in the cursor slot into inventory index {index}, but the inventory slot was empty.");
+        if (destinationEntry.item != cursorInventoryEntry.item)
+            throw new InvalidOperationException($"Tried to merge the item in the cursor slot into inventory index {index}, but the cursor and inventory slots did not contain the same item.");
+        if (destinationEntry.stackSize >= destinationEntry.item.maxStack)
+            throw new InvalidOperationException($"Tried to merge the item in the cursor slot into inventory index {index}, but the inventory slot's stack was already full.");
+
+        int stackOnCursor = cursorInventoryEntry.stackSize;
+        int remainingSpace = destinationEntry.item.maxStack - destinationEntry.stackSize;
+        int amountAddedToInventoryStack = Mathf.Min(stackOnCursor, remainingSpace);
+        destinationEntry.AddToStack(amountAddedToInventoryStack);
+        if (stackOnCursor - amountAddedToInventoryStack > 0)
+        {
+            cursorInventoryEntry.RemoveFromStack(amountAddedToInventoryStack);
+        }
+        else
+        {
+            cursorInventoryEntry = null;
+        }
+
+        RefreshSlots(CursorSlotIndex, index); // for now
+    }
+
+    private void SwapCursorWithSlot(int index)
+    {
+        if (index < 0 || index >= inventoryEntries.Length)
+            throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
+        if (!ItemInCursorSlot)
+            throw new InvalidOperationException("Tried to place an item from the cursor slot when it was empty.");
+
+        InventoryEntry clickedInventoryEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
+
+        if (clickedInventoryEntry == null)
+            throw new InvalidOperationException($"Tried to swap the cursor slot with inventory index {index}, but the inventory slot was empty.");
+
+        inventoryEntries[index] = cursorInventoryEntry;
+        cursorInventoryEntry = clickedInventoryEntry;
+
+        RefreshSlots(CursorSlotIndex, index); // for now
     }
 
     public void AddItem(InventoryEntry entryToAdd, int? inventoryEntryIndexChoice = null)
