@@ -10,6 +10,30 @@ public class Inventory : MonoBehaviour
     private Dictionary<InventorySlotUIController, int> slotUIControllerToIndexMap;
 
 
+    public readonly struct InventoryOperationResult
+    {
+        public enum ResultType
+        {
+            NoOp,
+            Pickup,
+        }
+
+        public ResultType OperationResultType { get; }
+        public bool CursorSlotChanged { get; }
+        public IReadOnlyList<int> ChangedSlotIndices { get; }
+
+        public InventoryOperationResult(ResultType operationResultType, bool cursorSlotChanged, List<int> changedSlotIndices)
+        {
+            if (changedSlotIndices == null)
+                throw new ArgumentNullException(nameof(changedSlotIndices));
+
+            OperationResultType = operationResultType;
+            CursorSlotChanged = cursorSlotChanged;
+            ChangedSlotIndices = changedSlotIndices.AsReadOnly();
+        }
+    }
+
+
     public class InventoryEntry : IItemDisplayInformation
     {
         public Item item { get; }
