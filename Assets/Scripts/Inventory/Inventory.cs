@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Inventory : MonoBehaviour
@@ -16,20 +17,23 @@ public class Inventory : MonoBehaviour
         {
             NoOp,
             Pickup,
+            Place,
+            Swap,
+            Merge,
         }
 
         public ResultType OperationResultType { get; }
         public bool CursorSlotChanged { get; }
         public IReadOnlyList<int> ChangedSlotIndices { get; }
 
-        public InventoryOperationResult(ResultType operationResultType, bool cursorSlotChanged, List<int> changedSlotIndices)
+        public InventoryOperationResult(ResultType operationResultType, bool cursorSlotChanged, params int[] changedSlotIndices)
         {
             if (changedSlotIndices == null)
                 throw new ArgumentNullException(nameof(changedSlotIndices));
 
             OperationResultType = operationResultType;
             CursorSlotChanged = cursorSlotChanged;
-            ChangedSlotIndices = changedSlotIndices.AsReadOnly();
+            ChangedSlotIndices = Array.AsReadOnly(changedSlotIndices.ToArray());
         }
     }
 
@@ -120,6 +124,14 @@ public class Inventory : MonoBehaviour
         EventManager.InventorySlotClickedEvent -= HandleUIInventorySlotClicked;
     }
 
+    private void RefreshSlots(InventoryOperationResult inventoryOperationResult)
+    {
+        if (!inventoryOperationResult.CursorSlotChanged)
+            RefreshSlots(inventoryOperationResult.ChangedSlotIndices.ToArray<int>());
+        else
+            RefreshSlots(inventoryOperationResult.ChangedSlotIndices.Prepend(CursorSlotIndex).ToArray<int>());
+    }
+
     private void RefreshSlots(params int[] indices)
     {
         EventManager.TriggerInventoryUpdateEvent(indices);
@@ -151,7 +163,8 @@ public class Inventory : MonoBehaviour
 
     private void HandleUIInventorySlotClickedForSinglePull(int index)
     {
-        TakeFromSlotIntoCursor(index, 1);
+        InventoryOperationResult inventoryOperationResult = TakeFromSlotIntoCursor(index, 1);
+        RefreshSlots(inventoryOperationResult);
     }
 
     private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller, int index)
@@ -159,7 +172,8 @@ public class Inventory : MonoBehaviour
         Action<int> acceptButtonAction = (amountTaken) =>
         {
             itemCursorFollowerController.Activate();
-            TakeFromSlotIntoCursor(index, amountTaken);
+            InventoryOperationResult inventoryOperationResult = TakeFromSlotIntoCursor(index, amountTaken);
+            RefreshSlots(inventoryOperationResult);
         };
 
         // Get location for stack size selector panel to open, then open it
@@ -184,7 +198,8 @@ public class Inventory : MonoBehaviour
             if (clickedEntry != null)
             {
                 // Pull item from inventory onto cursor
-                TakeFromSlotIntoCursor(index, clickedEntry.stackSize);
+                InventoryOperationResult inventoryOperationResult = TakeFromSlotIntoCursor(index, clickedEntry.stackSize);
+                RefreshSlots(inventoryOperationResult);
             }
             // Otherwise, do nothing.
             return;
@@ -194,7 +209,8 @@ public class Inventory : MonoBehaviour
             if (clickedEntry == null)
             {
                 // Empty inventory slot: move item from cursor to inventory slot
-                PlaceFromCursorIntoSlot(index);
+                InventoryOperationResult inventoryOperationResult = PlaceFromCursorIntoSlot(index);
+                RefreshSlots(inventoryOperationResult);
                 return;
             }
             else
@@ -202,7 +218,8 @@ public class Inventory : MonoBehaviour
                 if (cursorInventoryEntry.item != clickedEntry.item)
                 {
                     // Different items: swap
-                    SwapCursorWithSlot(index);
+                    InventoryOperationResult inventoryOperationResult = SwapCursorWithSlot(index);
+                    RefreshSlots(inventoryOperationResult);
                     return;
                 }
                 else
@@ -210,13 +227,15 @@ public class Inventory : MonoBehaviour
                     if (clickedEntry.stackSize < clickedEntry.item.maxStack)
                     {
                         // Same item, and there is room for more in its stack in the inventory slot: add to stack, and if stack fills, keep remainder on cursor
-                        MergeFromCursorIntoSlot(index);
+                        InventoryOperationResult inventoryOperationResult = MergeFromCursorIntoSlot(index);
+                        RefreshSlots(inventoryOperationResult);
                         return;
                     }
                     else
                     {
                         // Same item, but the inventory slot's stack is full: swap
-                        SwapCursorWithSlot(index);
+                        InventoryOperationResult inventoryOperationResult = SwapCursorWithSlot(index);
+                        RefreshSlots(inventoryOperationResult);
                         return;
                     }
                 }
@@ -224,7 +243,7 @@ public class Inventory : MonoBehaviour
         }
     }
 
-    private void TakeFromSlotIntoCursor(int index, int amount)
+    private InventoryOperationResult TakeFromSlotIntoCursor(int index, int amount)
     {
         if (index < 0 || index >= inventoryEntries.Length)
             throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
@@ -248,10 +267,11 @@ public class Inventory : MonoBehaviour
             cursorInventoryEntry = sourceEntry;
             inventoryEntries[index] = null;
         }
-        RefreshSlots(CursorSlotIndex, index); // for now
+
+        return new InventoryOperationResult(InventoryOperationResult.ResultType.Pickup, true, index);
     }
 
-    private void PlaceFromCursorIntoSlot(int index)
+    private InventoryOperationResult PlaceFromCursorIntoSlot(int index)
     {
         if (index < 0 || index >= inventoryEntries.Length)
             throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
@@ -266,10 +286,10 @@ public class Inventory : MonoBehaviour
         inventoryEntries[index] = cursorInventoryEntry;
         cursorInventoryEntry = null;
 
-        RefreshSlots(CursorSlotIndex, index); // for now
+        return new InventoryOperationResult(InventoryOperationResult.ResultType.Place, true, index);
     }
 
-    private void MergeFromCursorIntoSlot(int index)
+    private InventoryOperationResult MergeFromCursorIntoSlot(int index)
     {
         if (index < 0 || index >= inventoryEntries.Length)
             throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
@@ -298,10 +318,10 @@ public class Inventory : MonoBehaviour
             cursorInventoryEntry = null;
         }
 
-        RefreshSlots(CursorSlotIndex, index); // for now
+        return new InventoryOperationResult(InventoryOperationResult.ResultType.Merge, true, index);
     }
 
-    private void SwapCursorWithSlot(int index)
+    private InventoryOperationResult SwapCursorWithSlot(int index)
     {
         if (index < 0 || index >= inventoryEntries.Length)
             throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
@@ -316,7 +336,7 @@ public class Inventory : MonoBehaviour
         inventoryEntries[index] = cursorInventoryEntry;
         cursorInventoryEntry = clickedInventoryEntry;
 
-        RefreshSlots(CursorSlotIndex, index); // for now
+        return new InventoryOperationResult(InventoryOperationResult.ResultType.Swap, true, index);
     }
 
     public void AddItem(InventoryEntry entryToAdd, int? inventoryEntryIndexChoice = null)
