@@ -126,6 +126,9 @@ public class Inventory : MonoBehaviour
 
     private void RefreshSlots(InventoryOperationResult inventoryOperationResult)
     {
+        if (inventoryOperationResult.OperationResultType == InventoryOperationResult.ResultType.NoOp || (!inventoryOperationResult.CursorSlotChanged && inventoryOperationResult.ChangedSlotIndices.Count == 0))
+            return;
+
         if (!inventoryOperationResult.CursorSlotChanged)
             RefreshSlots(inventoryOperationResult.ChangedSlotIndices.ToArray<int>());
         else
@@ -145,26 +148,25 @@ public class Inventory : MonoBehaviour
         }
 
         itemCursorFollowerController.Activate();
+        InventoryOperationResult inventoryOperationResult;
 
         // Special keypresses: ctrl-click to pick 1 item from the stack, shift-click to pick up a specified number from the stack
         if (controller.SlotClickType == InventorySlotUIController.ClickType.Ctrl && !ItemInCursorSlot)
-        {
-            HandleUIInventorySlotClickedForSinglePull(index);
-            return;
-        }
-        if (controller.SlotClickType == InventorySlotUIController.ClickType.Shift && !ItemInCursorSlot)
+            inventoryOperationResult = HandleUIInventorySlotClickedForSinglePull(index);
+        else if (controller.SlotClickType == InventorySlotUIController.ClickType.Shift && !ItemInCursorSlot)
         {
             HandleUIInventorySlotClickedForStackSelection(controller, index);
             return;
         }
+        else
+            inventoryOperationResult = InteractWithInventorySlot(index);
 
-        InteractWithInventorySlot(index);
+        RefreshSlots(inventoryOperationResult);
     }
 
-    private void HandleUIInventorySlotClickedForSinglePull(int index)
+    private InventoryOperationResult HandleUIInventorySlotClickedForSinglePull(int index)
     {
-        InventoryOperationResult inventoryOperationResult = TakeFromSlotIntoCursor(index, 1);
-        RefreshSlots(inventoryOperationResult);
+        return TakeFromSlotIntoCursor(index, 1);
     }
 
     private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller, int index)
@@ -189,7 +191,7 @@ public class Inventory : MonoBehaviour
         UIManager.Instance.ShowStackSizeSelectorPanel(new InventoryEntry(inventoryEntries[index]), stackSizeSelectorPanelPosition, acceptButtonAction);
     }
 
-    private void InteractWithInventorySlot(int index)
+    private InventoryOperationResult InteractWithInventorySlot(int index)
     {
         InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
 
@@ -198,45 +200,38 @@ public class Inventory : MonoBehaviour
             if (clickedEntry != null)
             {
                 // Pull item from inventory onto cursor
-                InventoryOperationResult inventoryOperationResult = TakeFromSlotIntoCursor(index, clickedEntry.stackSize);
-                RefreshSlots(inventoryOperationResult);
+                return TakeFromSlotIntoCursor(index, clickedEntry.stackSize);
             }
+
             // Otherwise, do nothing.
-            return;
+            return new InventoryOperationResult(InventoryOperationResult.ResultType.NoOp, false);
+
         }
         else // Item in cursor slot
         {
             if (clickedEntry == null)
             {
                 // Empty inventory slot: move item from cursor to inventory slot
-                InventoryOperationResult inventoryOperationResult = PlaceFromCursorIntoSlot(index);
-                RefreshSlots(inventoryOperationResult);
-                return;
+                return PlaceFromCursorIntoSlot(index);
             }
             else
             {
                 if (cursorInventoryEntry.item != clickedEntry.item)
                 {
                     // Different items: swap
-                    InventoryOperationResult inventoryOperationResult = SwapCursorWithSlot(index);
-                    RefreshSlots(inventoryOperationResult);
-                    return;
+                    return SwapCursorWithSlot(index);
                 }
                 else
                 {
                     if (clickedEntry.stackSize < clickedEntry.item.maxStack)
                     {
                         // Same item, and there is room for more in its stack in the inventory slot: add to stack, and if stack fills, keep remainder on cursor
-                        InventoryOperationResult inventoryOperationResult = MergeFromCursorIntoSlot(index);
-                        RefreshSlots(inventoryOperationResult);
-                        return;
+                        return MergeFromCursorIntoSlot(index);
                     }
                     else
                     {
                         // Same item, but the inventory slot's stack is full: swap
-                        InventoryOperationResult inventoryOperationResult = SwapCursorWithSlot(index);
-                        RefreshSlots(inventoryOperationResult);
-                        return;
+                        return SwapCursorWithSlot(index);
                     }
                 }
             }
