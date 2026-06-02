@@ -171,24 +171,29 @@ public class Inventory : MonoBehaviour
 
     private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller, int index)
     {
-        Action<int> acceptButtonAction = (amountTaken) =>
-        {
-            itemCursorFollowerController.Activate();
-            InventoryOperationResult inventoryOperationResult = TakeFromSlotIntoCursor(index, amountTaken);
-            RefreshSlots(inventoryOperationResult);
-        };
+        Action<int> acceptButtonAction = (amountTaken) => OnStackSizeSelectorAccepted(index, amountTaken);
 
         // Get location for stack size selector panel to open, then open it
+        Vector2 stackSizeSelectorPanelPosition = CalculateStackSelectionPanelPosition(controller);
+        UIManager.Instance.ShowStackSizeSelectorPanel(new InventoryEntry(inventoryEntries[index]), stackSizeSelectorPanelPosition, acceptButtonAction);
+    }
 
+    private Vector2 CalculateStackSelectionPanelPosition(InventorySlotUIController controller)
+    {
         RectTransform inventorySlotRectTransform = controller.GetComponent<RectTransform>();
         Vector2 slotTransformSize = inventorySlotRectTransform.rect.size;  // (width, height) pair for the slot's size
         Vector2 slotTransformPivotOffset = inventorySlotRectTransform.pivot;  // Represents the pivot offset within the slot transform as a pair (x-offset, y-offset). The values range from 0 to 1, where 0 is the left (x) or bottom (y).
         Vector2 bottomRightOffset = new Vector2((1.0f - slotTransformPivotOffset.x) * slotTransformSize.x, (0.0f - slotTransformPivotOffset.y) * slotTransformSize.y); // Calculate the offset of the bottom-right corner from the pivot location
         RectTransform inventoryPanelRectTransform = inventorySlotRectTransform.GetComponentInParent<InventoryPanelController>().GetComponent<RectTransform>();
         Vector2 bottomRightCorner = inventoryPanelRectTransform.anchoredPosition + inventorySlotRectTransform.anchoredPosition + bottomRightOffset;
-        Vector2 stackSizeSelectorPanelPosition = bottomRightCorner;
+        return bottomRightCorner;
+    }
 
-        UIManager.Instance.ShowStackSizeSelectorPanel(new InventoryEntry(inventoryEntries[index]), stackSizeSelectorPanelPosition, acceptButtonAction);
+    private void OnStackSizeSelectorAccepted(int index, int amountTaken)
+    {
+        itemCursorFollowerController.Activate();
+        InventoryOperationResult inventoryOperationResult = TakeFromSlotIntoCursor(index, amountTaken);
+        RefreshSlots(inventoryOperationResult);
     }
 
     private InventoryOperationResult InteractWithInventorySlot(int index)
