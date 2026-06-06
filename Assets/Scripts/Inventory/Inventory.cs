@@ -208,7 +208,7 @@ public class Inventory : MonoBehaviour
             return;
         }
         else
-            inventoryOperationResult = InteractWithInventorySlot(index);
+            inventoryOperationResult = HandleInventorySlotInteraction(index);
 
         RefreshSlots(inventoryOperationResult);
     }
@@ -245,7 +245,7 @@ public class Inventory : MonoBehaviour
         RefreshSlots(inventoryOperationResult);
     }
 
-    private InventoryOperationResult InteractWithInventorySlot(int index)
+    private InventoryOperationResult HandleInventorySlotInteraction(int index)
     {
         InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
 
@@ -471,6 +471,19 @@ public class Inventory : MonoBehaviour
             return InventoryOperationResult.ItemPartiallyAdded(amountLeftToAdd, indicesToUpdate.ToArray());
         }
         return InventoryOperationResult.ItemFullyAdded(indicesToUpdate.ToArray());
+    }
+
+    public void HandleAddItemToInventory(InventoryEntry entryToAdd, int? inventoryEntryIndexChoice = null)
+    {
+        if (entryToAdd == null)
+        {
+            Debug.LogWarning("Tried to add a null item to the inventory.");
+            return;
+        }
+        InventoryOperationResult inventoryOperationResult = AddItem(entryToAdd, inventoryEntryIndexChoice);
+        if (inventoryOperationResult.OperationResultType == InventoryOperationResult.ResultType.ItemPartiallyAdded || inventoryOperationResult.OperationResultType == InventoryOperationResult.ResultType.NoSpace)
+            Debug.LogWarning($"Out of {entryToAdd.stackSize} items to add, {inventoryOperationResult.LeftoverItemCount} were lost due to not having space in the inventory.");
+        RefreshSlots(inventoryOperationResult);
     }
 
     public bool HasItem(InventoryEntry entryToCheck)
