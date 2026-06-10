@@ -10,15 +10,10 @@ public class Inventory : MonoBehaviour
 
     private Dictionary<InventorySlotUIController, int> slotUIControllerToIndexMap;
 
-    public class InventoryEntry : IItemDisplayInformation
+    public class InventoryEntry
     {
         public Item item { get; }
         public int stackSize { get; private set; }
-
-        public string ItemName => item.itemName;
-        public int StackSize => stackSize;
-        public int MaxStackSize => item.maxStack;
-        public Sprite Icon => item.icon;
 
         public InventoryEntry(Item item, int stackSize)
         {
