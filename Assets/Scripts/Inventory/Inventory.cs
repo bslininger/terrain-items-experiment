@@ -142,7 +142,7 @@ public class Inventory : MonoBehaviour
 
         // Get location for stack size selector panel to open, then open it
         Vector2 stackSizeSelectorPanelPosition = CalculateStackSelectionPanelPosition(controller);
-        UIManager.Instance.ShowStackSizeSelectorPanel(new InventoryEntry(inventoryEntries[index]), stackSizeSelectorPanelPosition, acceptButtonAction);
+        UIManager.Instance.ShowStackSizeSelectorPanel(GetSlotDisplayInformation(index), stackSizeSelectorPanelPosition, acceptButtonAction);
     }
 
     private Vector2 CalculateStackSelectionPanelPosition(InventorySlotUIController controller)
@@ -433,6 +433,18 @@ public class Inventory : MonoBehaviour
         itemCursorFollowerController.Activate();
         cursorInventoryEntry = inventoryEntry;
         RefreshSlots(CursorSlotIndex);
+    }
+
+    public InventorySlotDisplayInformation GetSlotDisplayInformation(int index)
+    {
+        if ((index < 0 || index >= inventoryEntries.Length) && index != CursorSlotIndex)
+            throw new ArgumentOutOfRangeException(nameof(index), $"Slot index must be either the special value of Inventory.CursorSlotIndex ({CursorSlotIndex}), or a value in the range of the inventory size (0 to {inventoryEntries.Length - 1}); given value was {index}.");
+
+        InventoryEntry entry = (index == CursorSlotIndex) ? cursorInventoryEntry : inventoryEntries[index];
+
+        if (entry == null)
+            return InventorySlotDisplayInformation.Empty(index);
+        return InventorySlotDisplayInformation.Occupied(index, entry.item.itemName, entry.item.icon, entry.stackSize, entry.item.maxStack);
     }
 
     public int InventorySize => inventorySize;

@@ -55,7 +55,7 @@ public class UIManager : MonoBehaviour, IInputLockProvider
         inventoryPanelController.ActivateInventoryPanel();
     }
 
-    public void ShowStackSizeSelectorPanel(Inventory.InventoryEntry inventoryEntry, Vector2 location, Action<int> acceptButtonAction)
+    public void ShowStackSizeSelectorPanel(InventorySlotDisplayInformation displayInformation, Vector2 location, Action<int> acceptButtonAction)
     {
         if (StackSizeSelectorPanelOpen)
         {
@@ -74,7 +74,7 @@ public class UIManager : MonoBehaviour, IInputLockProvider
         RectTransform stackSizeSelectorPanelRectTransform = panelInstance.GetComponent<RectTransform>();
         stackSizeSelectorPanelRectTransform.anchoredPosition = location + new Vector2(stackSizeSelectorPanelRectTransform.rect.width / 2 + 10.0f, 0.0f);
 
-        stackSizeSelectorPanelController.SetInventoryEntry(inventoryEntry);
+        stackSizeSelectorPanelController.InitializePreviewSlot(displayInformation);
 
         stackSizeSelectorPanelController.SetAcceptAction((int amount) =>
         {

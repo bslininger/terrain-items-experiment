@@ -45,8 +45,8 @@ public class InventoryItemCursorFollower : MonoBehaviour
             return;
         }
         // Called when notified that the item on the cursor has changed
-        Inventory.InventoryEntry cursorEntry = playerInventory[Inventory.CursorSlotIndex];
-        if (cursorEntry == null)
+        InventorySlotDisplayInformation cursorSlotDisplayInformation = playerInventory.GetSlotDisplayInformation(Inventory.CursorSlotIndex);
+        if (!cursorSlotDisplayInformation.HasItem)
         {
             Destroy(slotUIElement);
             gameObject.SetActive(false);
@@ -67,7 +67,7 @@ public class InventoryItemCursorFollower : MonoBehaviour
             slotBackgroundImage.enabled = false;
             InventorySlotUIController slotUIController = slotUIElement.transform.GetComponent<InventorySlotUIController>();
             slotUIController.InputLockProvider = UIManager.Instance;
-            slotUIController.SetSlot(cursorEntry);
+            slotUIController.SetSlot(cursorSlotDisplayInformation);
             gameObject.SetActive(true);
         }
     }

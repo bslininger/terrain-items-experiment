@@ -9,7 +9,7 @@ public class StackSizeSelectorPanelController : MonoBehaviour
     [SerializeField] private TMP_InputField inputField;
     [SerializeField] private TextMeshProUGUI itemNameText;
     [SerializeField] private InventorySlotUIController slotUIController;
-    private Inventory.InventoryEntry inventoryEntry;
+    private InventorySlotDisplayInformation inventorySlotDisplayInformation;
 
     private Action<int> onAccept; // This is the callback for the Accept button, defined outside this controller but stored inside it. Destroying afterward handled outside as well.
     private Action onCancel;
@@ -33,8 +33,8 @@ public class StackSizeSelectorPanelController : MonoBehaviour
             {
                 value = Mathf.Clamp(value, 1, (int)slider.maxValue);
                 slider.value = value;
-                inventoryEntry.SetStackSize(value);
-                slotUIController.SetSlot(inventoryEntry);
+                slotUIController.SetSlot(inventorySlotDisplayInformation);
+                slotUIController.OverrideStackText(value);
             }
         });
     }
@@ -45,13 +45,13 @@ public class StackSizeSelectorPanelController : MonoBehaviour
         
     }
 
-    public void SetInventoryEntry(Inventory.InventoryEntry entry)
+    public void InitializePreviewSlot(InventorySlotDisplayInformation displayInformation)
     {
-        inventoryEntry = entry;
-        slider.maxValue = inventoryEntry.stackSize;
+        inventorySlotDisplayInformation = displayInformation;
+        slider.maxValue = inventorySlotDisplayInformation.StackSize;
         slider.value = 1;
-        entry.SetStackSize(1);
-        slotUIController.SetSlot(inventoryEntry);
+        slotUIController.SetSlot(inventorySlotDisplayInformation);
+        slotUIController.OverrideStackText(1);
     }
 
     public void SetAcceptAction(Action<int> callback)
