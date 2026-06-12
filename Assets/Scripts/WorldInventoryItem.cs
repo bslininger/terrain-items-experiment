@@ -35,9 +35,9 @@ public class WorldInventoryItem : MonoBehaviour
         {
             return;
         }
-        Inventory.InventoryEntry itemEntry = new Inventory.InventoryEntry(itemData, 1);
         UIManager.Instance.ActivateInventoryPanel();
-        inventory.PutInventoryEntryInCursorSlot(itemEntry);
-        Destroy(gameObject);
+        InventoryOperationResult inventoryOperationResult = inventory.HandlePutItemInCursorSlot(itemData, 1);
+        if (inventoryOperationResult.CursorSlotChanged && inventoryOperationResult.OperationResultType == InventoryOperationResult.ResultType.PickupToCursor)
+            Destroy(gameObject);
     }
 }

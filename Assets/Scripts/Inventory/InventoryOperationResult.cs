@@ -56,9 +56,12 @@ public readonly struct InventoryOperationResult
         return new InventoryOperationResult(ResultType.NoSpace, false, leftoverItemCount);
     }
 
-    public static InventoryOperationResult PickupToCursor(int changedSlotIndex)
+    public static InventoryOperationResult PickupToCursor(int? changedSlotIndex)
     {
-        return new InventoryOperationResult(ResultType.PickupToCursor, true, 0, changedSlotIndex);
+        // A null changedSlotIndex represents no inventory slots changing, just the cursor slot (for example, when receiving an item to the cursor, or picking one up off the ground)
+        if (changedSlotIndex.HasValue)
+            return new InventoryOperationResult(ResultType.PickupToCursor, true, 0, changedSlotIndex.Value);
+        return new InventoryOperationResult(ResultType.PickupToCursor, true, 0);
     }
 
     public static InventoryOperationResult PlaceFromCursor(int changedSlotIndex)
