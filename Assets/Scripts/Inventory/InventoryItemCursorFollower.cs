@@ -16,6 +16,7 @@ public class InventoryItemCursorFollower : MonoBehaviour
 
     private void OnEnable()
     {
+        // The cursor follower stays enabled all the time; it's the slotUIElement that is created and destroyed when items come and go from the cursor.
         EventManager.InventoryUpdateEvent += UpdateCursorItem;
     }
 
@@ -26,6 +27,9 @@ public class InventoryItemCursorFollower : MonoBehaviour
 
     void Update()
     {
+        if (slotUIElement == null)
+            return;
+
         // Convert screen point to canvas-local position
         Vector2 localMousePosition;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -49,7 +53,7 @@ public class InventoryItemCursorFollower : MonoBehaviour
         if (!cursorSlotDisplayInformation.HasItem)
         {
             Destroy(slotUIElement);
-            gameObject.SetActive(false);
+            slotUIElement = null;
         }
         else
         {
@@ -68,14 +72,6 @@ public class InventoryItemCursorFollower : MonoBehaviour
             InventorySlotUIController slotUIController = slotUIElement.transform.GetComponent<InventorySlotUIController>();
             slotUIController.InputLockProvider = UIManager.Instance;
             slotUIController.SetSlot(cursorSlotDisplayInformation);
-            gameObject.SetActive(true);
         }
     }
-
-    public void Activate()
-    {
-        gameObject.SetActive(true);
-    }
-
-    public bool IsActive => gameObject.activeSelf;
 }

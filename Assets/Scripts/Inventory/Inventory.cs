@@ -6,7 +6,6 @@ using UnityEngine;
 public class Inventory : MonoBehaviour
 {
     [SerializeField] private int inventorySize = 30;
-    [SerializeField] private InventoryItemCursorFollower itemCursorFollowerController;
 
     private Dictionary<InventorySlotUIController, int> slotUIControllerToIndexMap;
 
@@ -114,7 +113,6 @@ public class Inventory : MonoBehaviour
             return;
         }
 
-        itemCursorFollowerController.Activate();
         InventoryOperationResult inventoryOperationResult;
 
         // Special keypresses: ctrl-click to pick 1 item from the stack, shift-click to pick up a specified number from the stack
@@ -158,7 +156,6 @@ public class Inventory : MonoBehaviour
 
     private void OnStackSizeSelectorAccepted(int index, int amountTaken)
     {
-        itemCursorFollowerController.Activate();
         InventoryOperationResult inventoryOperationResult = TakeFromSlotIntoCursor(index, amountTaken);
         RefreshSlots(inventoryOperationResult);
     }
@@ -430,7 +427,6 @@ public class Inventory : MonoBehaviour
         {
             Debug.LogWarning("Tried to put something in the cursor inventory slot while it already had something in it.");
         }
-        itemCursorFollowerController.Activate();
         cursorInventoryEntry = inventoryEntry;
         RefreshSlots(CursorSlotIndex);
     }
