@@ -1,14 +1,12 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-using System.Collections;
-using System.Collections.Generic;
 
 public class InventoryPanelController : MonoBehaviour
 {
     [SerializeField] private Inventory playerInventory;
+    [SerializeField] private InventoryController inventoryController;
     [SerializeField] private GameObject slotPrefab;
     private GameObject[] inventorySlots;
+
 
     private void OnEnable()
     {
@@ -47,19 +45,14 @@ public class InventoryPanelController : MonoBehaviour
             inventorySlots[index].name = $"Inventory Slot {index}";
             InventorySlotUIController slotUIController = inventorySlots[index].transform.GetComponent<InventorySlotUIController>();
             slotUIController.InputLockProvider = UIManager.Instance;
-            playerInventory.RegisterUIInventorySlot(slotUIController, index);
+            inventoryController.RegisterUIInventorySlot(slotUIController, index);
         }
 
         // Now, put inventory items into their proper slots in the inventory panel, based on their index locations in the inventory itself
-        for(int index = 0; index < playerInventory.InventorySize; ++index)
+        for (int index = 0; index < playerInventory.InventorySize; ++index)
         {
-            Inventory.InventoryEntry entry = playerInventory[index];
-            if (entry == null)
-            {
-                continue;
-            }
             InventorySlotUIController slotUIController = inventorySlots[index].transform.GetComponent<InventorySlotUIController>();
-            slotUIController.SetSlot(entry);
+            slotUIController.SetSlot(playerInventory.GetSlotDisplayInformation(index));
         }
     }
 
@@ -68,23 +61,14 @@ public class InventoryPanelController : MonoBehaviour
         foreach (int indexToUpdate in indicesToUpdate)
         {
             if (indexToUpdate >= 0)  // index -1 (Inventory.CursorSlotIndex) is used for the cursor inventory slot
-            {
-                UpdateSlot(indexToUpdate, playerInventory[indexToUpdate]);
-            }
+                UpdateSlot(indexToUpdate);
         }
     }
 
-    void UpdateSlot(int index, Inventory.InventoryEntry newEntry)
+    void UpdateSlot(int index)
     {
         InventorySlotUIController slotUIController = inventorySlots[index].transform.GetComponent<InventorySlotUIController>();
-        if (newEntry == null)
-        {
-            slotUIController.EmptySlot();
-        }
-        else
-        {
-            slotUIController.SetSlot(newEntry);
-        }
+        slotUIController.SetSlot(playerInventory.GetSlotDisplayInformation(index));
     }
 
     void DestroyAllSlots()
@@ -94,5 +78,6 @@ public class InventoryPanelController : MonoBehaviour
             Destroy(child.gameObject);
         }
         inventorySlots = null;
+        inventoryController.ClearAllRegistrations();
     }
 }

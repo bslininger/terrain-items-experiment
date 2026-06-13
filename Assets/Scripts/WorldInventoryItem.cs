@@ -26,18 +26,25 @@ public class WorldInventoryItem : MonoBehaviour
         }
 
         Inventory inventory = FindAnyObjectByType<Inventory>(); // Lazy but fine for now. But this will change. TODO
+        InventoryController inventoryController = FindAnyObjectByType<InventoryController>(); // Also lazy, for now.
         if (inventory == null)
         {
             Debug.LogWarning("No Inventory found in scene!");
             return;
         }
+        if (inventoryController == null)
+        {
+            Debug.LogWarning("No Inventory controller found in scene!");
+            return;
+
+        }
         if (inventory.ItemInCursorSlot)
         {
             return;
         }
-        Inventory.InventoryEntry itemEntry = new Inventory.InventoryEntry(itemData, 1);
         UIManager.Instance.ActivateInventoryPanel();
-        inventory.PutInventoryEntryInCursorSlot(itemEntry);
-        Destroy(gameObject);
+        InventoryOperationResult inventoryOperationResult = inventoryController.HandlePutItemInCursorSlot(itemData, 1);
+        if (inventoryOperationResult.CursorSlotChanged && inventoryOperationResult.OperationResultType == InventoryOperationResult.ResultType.PickupToCursor)
+            Destroy(gameObject);
     }
 }

@@ -1,57 +1,25 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Inventory : MonoBehaviour
 {
     [SerializeField] private int inventorySize = 30;
-    [SerializeField] private InventoryItemCursorFollower itemCursorFollowerController;
 
-    private Dictionary<InventorySlotUIController, int> slotUIControllerToIndexMap;
-
-
-    public readonly struct InventoryOperationResult
-    {
-        public enum ResultType
-        {
-            NoOp,
-            Pickup,
-        }
-
-        public ResultType OperationResultType { get; }
-        public bool CursorSlotChanged { get; }
-        public IReadOnlyList<int> ChangedSlotIndices { get; }
-
-        public InventoryOperationResult(ResultType operationResultType, bool cursorSlotChanged, List<int> changedSlotIndices)
-        {
-            if (changedSlotIndices == null)
-                throw new ArgumentNullException(nameof(changedSlotIndices));
-
-            OperationResultType = operationResultType;
-            CursorSlotChanged = cursorSlotChanged;
-            ChangedSlotIndices = changedSlotIndices.AsReadOnly();
-        }
-    }
-
-
-    public class InventoryEntry : IItemDisplayInformation
+    public class InventoryEntry
     {
         public Item item { get; }
         public int stackSize { get; private set; }
 
-        public string ItemName => item.itemName;
-        public int StackSize => stackSize;
-        public int MaxStackSize => item.maxStack;
-        public Sprite Icon => item.icon;
-
         public InventoryEntry(Item item, int stackSize)
         {
             if (item == null)
-                throw new System.ArgumentNullException(nameof(item), "Item can not be null");
+                throw new ArgumentNullException(nameof(item), "Item can not be null");
             if (stackSize <= 0)
-                throw new System.ArgumentException("Stack size must be at least 1");
+                throw new ArgumentException("Stack size must be at least 1");
             if (stackSize > item.maxStack)
-                throw new System.ArgumentException($"Given stack size {stackSize} exceeds item's maximum allowable stack size of {item.maxStack}");
+                throw new ArgumentException($"Given stack size {stackSize} exceeds item's maximum allowable stack size of {item.maxStack}");
 
             this.item = item;
             this.stackSize = stackSize;
@@ -60,7 +28,7 @@ public class Inventory : MonoBehaviour
         public InventoryEntry(InventoryEntry other)
         {
             if (other == null)
-                throw new System.ArgumentNullException("Tried to copy frum a null InventoryEntry");
+                throw new ArgumentNullException("Tried to copy frum a null InventoryEntry");
             item = other.item;
             stackSize = other.stackSize;
         }
@@ -68,11 +36,11 @@ public class Inventory : MonoBehaviour
         public void AddToStack(int amountToAdd)
         {
             if (amountToAdd < 0)
-                throw new System.ArgumentException("Can only add nonnegative amounts to the stack size");
+                throw new ArgumentException("Can only add nonnegative amounts to the stack size");
 
             int newSize = stackSize + amountToAdd;
             if (newSize > item.maxStack)
-                throw new System.InvalidOperationException($"Adding {amountToAdd} to the item's stack results in a stack size of {newSize}, larger than the maximum allowable stack size of {item.maxStack}");
+                throw new InvalidOperationException($"Adding {amountToAdd} to the item's stack results in a stack size of {newSize}, larger than the maximum allowable stack size of {item.maxStack}");
 
             stackSize = newSize;
         }
@@ -80,11 +48,11 @@ public class Inventory : MonoBehaviour
         public void RemoveFromStack(int amount)
         {
             if (amount < 0)
-                throw new System.ArgumentException("Can only add nonnegative amounts from the stack size");
+                throw new ArgumentException("Can only add nonnegative amounts from the stack size");
 
             int newSize = stackSize - amount;
             if (newSize <= 0)
-                throw new System.InvalidOperationException($"Stack size can not be reduced below 1; attempted to set the stack size to {newSize}");
+                throw new InvalidOperationException($"Stack size can not be reduced below 1; attempted to set the stack size to {newSize}");
 
             stackSize = newSize;
         }
@@ -92,7 +60,7 @@ public class Inventory : MonoBehaviour
         public void SetStackSize(int newStackSize)
         {
             if (newStackSize < 1 || newStackSize > item.maxStack)
-                throw new System.ArgumentException($"Tried to set stack size to {newStackSize} which is out of bounds (1 to {item.maxStack}");
+                throw new ArgumentException($"Tried to set stack size to {newStackSize} which is out of bounds (1 to {item.maxStack}");
             stackSize = newStackSize;
         }
     }
@@ -103,79 +71,17 @@ public class Inventory : MonoBehaviour
     private void Awake()
     {
         inventoryEntries = new InventoryEntry[inventorySize];
-        slotUIControllerToIndexMap = new Dictionary<InventorySlotUIController, int>();
     }
 
     private void Update()
     {
     }
-
-    private void OnEnable()
+    public InventoryOperationResult InteractWithSlot(int index)
     {
-        EventManager.InventorySlotClickedEvent += HandleUIInventorySlotClicked;
+        return HandleInventorySlotInteraction(index);
     }
 
-    private void OnDisable()
-    {
-        EventManager.InventorySlotClickedEvent -= HandleUIInventorySlotClicked;
-    }
-
-    private void RefreshSlots(params int[] indices)
-    {
-        EventManager.TriggerInventoryUpdateEvent(indices);
-    }
-    private void HandleUIInventorySlotClicked(InventorySlotUIController controller)
-    {
-        if (!slotUIControllerToIndexMap.TryGetValue(controller, out int index))
-        {
-            Debug.LogWarning("Clicked slot not registered with Inventory!");
-            return;
-        }
-
-        itemCursorFollowerController.Activate();
-
-        // Special keypresses: ctrl-click to pick 1 item from the stack, shift-click to pick up a specified number from the stack
-        if (controller.SlotClickType == InventorySlotUIController.ClickType.Ctrl && !ItemInCursorSlot)
-        {
-            HandleUIInventorySlotClickedForSinglePull(index);
-            return;
-        }
-        if (controller.SlotClickType == InventorySlotUIController.ClickType.Shift && !ItemInCursorSlot)
-        {
-            HandleUIInventorySlotClickedForStackSelection(controller, index);
-            return;
-        }
-
-        InteractWithInventorySlot(index);
-    }
-
-    private void HandleUIInventorySlotClickedForSinglePull(int index)
-    {
-        TakeFromSlotIntoCursor(index, 1);
-    }
-
-    private void HandleUIInventorySlotClickedForStackSelection(InventorySlotUIController controller, int index)
-    {
-        Action<int> acceptButtonAction = (amountTaken) =>
-        {
-            itemCursorFollowerController.Activate();
-            TakeFromSlotIntoCursor(index, amountTaken);
-        };
-
-        // Get location for stack size selector panel to open, then open it
-
-        RectTransform inventorySlotRectTransform = controller.GetComponent<RectTransform>();
-        Vector2 slotTransformSize = inventorySlotRectTransform.rect.size;  // (width, height) pair for the slot's size
-        Vector2 slotTransformPivotOffset = inventorySlotRectTransform.pivot;  // Represents the pivot offset within the slot transform as a pair (x-offset, y-offset). The values range from 0 to 1, where 0 is the left (x) or bottom (y).
-        Vector2 bottomRightOffset = new Vector2((1.0f - slotTransformPivotOffset.x) * slotTransformSize.x, (0.0f - slotTransformPivotOffset.y) * slotTransformSize.y); // Calculate the offset of the bottom-right corner from the pivot location
-        RectTransform inventoryPanelRectTransform = inventorySlotRectTransform.GetComponentInParent<InventoryPanelController>().GetComponent<RectTransform>();
-        Vector2 bottomRightCorner = inventoryPanelRectTransform.anchoredPosition + inventorySlotRectTransform.anchoredPosition + bottomRightOffset;
-        Vector2 stackSizeSelectorPanelPosition = bottomRightCorner;
-
-        UIManager.Instance.ShowStackSizeSelectorPanel(new InventoryEntry(inventoryEntries[index]), stackSizeSelectorPanelPosition, acceptButtonAction);
-    }
-
-    private void InteractWithInventorySlot(int index)
+    private InventoryOperationResult HandleInventorySlotInteraction(int index)
     {
         InventoryEntry clickedEntry = inventoryEntries[index]; // same reference as inventoryEntries[index] (not a copy!) We move this reference around, or move items between it and the cursor inventory entry.
 
@@ -184,47 +90,45 @@ public class Inventory : MonoBehaviour
             if (clickedEntry != null)
             {
                 // Pull item from inventory onto cursor
-                TakeFromSlotIntoCursor(index, clickedEntry.stackSize);
+                return TakeFromSlotIntoCursor(index, clickedEntry.stackSize);
             }
+
             // Otherwise, do nothing.
-            return;
+            return InventoryOperationResult.NoOperation();
+
         }
         else // Item in cursor slot
         {
             if (clickedEntry == null)
             {
                 // Empty inventory slot: move item from cursor to inventory slot
-                PlaceFromCursorIntoSlot(index);
-                return;
+                return PlaceFromCursorIntoSlot(index);
             }
             else
             {
                 if (cursorInventoryEntry.item != clickedEntry.item)
                 {
                     // Different items: swap
-                    SwapCursorWithSlot(index);
-                    return;
+                    return SwapCursorWithSlot(index);
                 }
                 else
                 {
                     if (clickedEntry.stackSize < clickedEntry.item.maxStack)
                     {
                         // Same item, and there is room for more in its stack in the inventory slot: add to stack, and if stack fills, keep remainder on cursor
-                        MergeFromCursorIntoSlot(index);
-                        return;
+                        return MergeFromCursorIntoSlot(index);
                     }
                     else
                     {
                         // Same item, but the inventory slot's stack is full: swap
-                        SwapCursorWithSlot(index);
-                        return;
+                        return SwapCursorWithSlot(index);
                     }
                 }
             }
         }
     }
 
-    private void TakeFromSlotIntoCursor(int index, int amount)
+    public InventoryOperationResult TakeFromSlotIntoCursor(int index, int amount)
     {
         if (index < 0 || index >= inventoryEntries.Length)
             throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
@@ -248,10 +152,11 @@ public class Inventory : MonoBehaviour
             cursorInventoryEntry = sourceEntry;
             inventoryEntries[index] = null;
         }
-        RefreshSlots(CursorSlotIndex, index); // for now
+
+        return InventoryOperationResult.PickupToCursor(index);
     }
 
-    private void PlaceFromCursorIntoSlot(int index)
+    private InventoryOperationResult PlaceFromCursorIntoSlot(int index)
     {
         if (index < 0 || index >= inventoryEntries.Length)
             throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
@@ -266,10 +171,10 @@ public class Inventory : MonoBehaviour
         inventoryEntries[index] = cursorInventoryEntry;
         cursorInventoryEntry = null;
 
-        RefreshSlots(CursorSlotIndex, index); // for now
+        return InventoryOperationResult.PlaceFromCursor(index);
     }
 
-    private void MergeFromCursorIntoSlot(int index)
+    private InventoryOperationResult MergeFromCursorIntoSlot(int index)
     {
         if (index < 0 || index >= inventoryEntries.Length)
             throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
@@ -298,10 +203,10 @@ public class Inventory : MonoBehaviour
             cursorInventoryEntry = null;
         }
 
-        RefreshSlots(CursorSlotIndex, index); // for now
+        return InventoryOperationResult.MergeFromCursor(index);
     }
 
-    private void SwapCursorWithSlot(int index)
+    private InventoryOperationResult SwapCursorWithSlot(int index)
     {
         if (index < 0 || index >= inventoryEntries.Length)
             throw new ArgumentOutOfRangeException(nameof(index), $"Inventory index must be between 0 and {inventoryEntries.Length - 1}; index given was {index}");
@@ -316,25 +221,29 @@ public class Inventory : MonoBehaviour
         inventoryEntries[index] = cursorInventoryEntry;
         cursorInventoryEntry = clickedInventoryEntry;
 
-        RefreshSlots(CursorSlotIndex, index); // for now
+        return InventoryOperationResult.SwapWithCursor(index);
     }
 
-    public void AddItem(InventoryEntry entryToAdd, int? inventoryEntryIndexChoice = null)
+    public InventoryOperationResult AddItem(Item item, int amountToAdd, int? slotIndexChoice = null, bool allowOverflowOutsideChosenSlot = true)
     {
-        Item item = entryToAdd.item;
-        int amountToAdd = entryToAdd.stackSize;
-        if (amountToAdd < 1)
-        {
-            return;
-        }
+        if (item == null)
+            throw new ArgumentNullException(nameof(item));
+        if (slotIndexChoice.HasValue && (slotIndexChoice.Value < 0 || slotIndexChoice.Value >= inventoryEntries.Length))
+            throw new ArgumentOutOfRangeException(nameof(slotIndexChoice), $"Inventory entry slot choice must be from 0 to {inventoryEntries.Length - 1}; given value was {slotIndexChoice.Value}. Use PutItemInCursorSlot() to add an item to the cursor.");
+        if (amountToAdd < 0)
+            throw new ArgumentOutOfRangeException(nameof(amountToAdd));
+
+        if (amountToAdd == 0)
+            return InventoryOperationResult.NoOperation();
+
         int amountLeftToAdd = amountToAdd;
         int maxStackSize = item.IsStackable ? item.maxStack : 1;
         List<int> indicesToUpdate = new List<int>();
 
-        // First: try to put all items in the entry at the chosen index. If that is successful, then return early.
-        if (inventoryEntryIndexChoice.HasValue && inventoryEntryIndexChoice.Value < inventorySize)
+        // First: try to put all items in the slot at the chosen index. If that is successful, then return early.
+        if (slotIndexChoice.HasValue && slotIndexChoice.Value < inventorySize)
         {
-            int inventoryEntryIndex = inventoryEntryIndexChoice.Value;
+            int inventoryEntryIndex = slotIndexChoice.Value;
             if (inventoryEntries[inventoryEntryIndex] == null)
             {
                 // Option 1: The chosen inventory slot is empty
@@ -343,7 +252,7 @@ public class Inventory : MonoBehaviour
                 indicesToUpdate.Add(inventoryEntryIndex);
                 amountLeftToAdd -= amountAddedToStack;
             }
-            else if (inventoryEntries[inventoryEntryIndex].item == item && amountLeftToAdd + inventoryEntries[inventoryEntryIndex].stackSize <= item.maxStack)
+            else if (inventoryEntries[inventoryEntryIndex].item == item && inventoryEntries[inventoryEntryIndex].stackSize < maxStackSize)
             {
                 // Option 2: The chosen inventory slot has the same item as the one being added, and the stack at that location isn't full.
                 int remainingSpace = maxStackSize - inventoryEntries[inventoryEntryIndex].stackSize;
@@ -353,107 +262,87 @@ public class Inventory : MonoBehaviour
                 amountLeftToAdd -= amountAddedToStack;
             }
             if (amountLeftToAdd < 1)
-            {
-                RefreshSlots(indicesToUpdate.ToArray());
-                return;
-            }
+                return InventoryOperationResult.ItemFullyAdded(indicesToUpdate.ToArray());
         }
 
-        // Now, fill in any existing stacks
-        for (int index = 0; index < inventorySize; ++index)
+        if (!slotIndexChoice.HasValue || (slotIndexChoice.HasValue && allowOverflowOutsideChosenSlot))
         {
-            InventoryEntry entry = inventoryEntries[index];
-            if (entry != null && entry.item == item && entry.stackSize < maxStackSize)
+            // Fill in any existing stacks.
+            for (int index = 0; index < inventorySize; ++index)
             {
-                int remainingSpace = maxStackSize - entry.stackSize;
-                int amountAddedToStack = Mathf.Min(amountLeftToAdd, remainingSpace);
-                entry.AddToStack(amountAddedToStack);
+                InventoryEntry entry = inventoryEntries[index];
+                if (entry != null && entry.item == item && entry.stackSize < maxStackSize)
+                {
+                    int remainingSpace = maxStackSize - entry.stackSize;
+                    int amountAddedToStack = Mathf.Min(amountLeftToAdd, remainingSpace);
+                    entry.AddToStack(amountAddedToStack);
+                    indicesToUpdate.Add(index);
+                    amountLeftToAdd -= amountAddedToStack;
+                }
+                if (amountLeftToAdd < 1)
+                    return InventoryOperationResult.ItemFullyAdded(indicesToUpdate.ToArray());
+            }
+
+            // If there are still items to add, add them in empty entries in order from beginning to end.
+            Queue<int> emptyEntryIndices = new Queue<int>();
+            for (int index = 0; index < inventorySize; ++index)
+            {
+                if (inventoryEntries[index] == null)
+                {
+                    emptyEntryIndices.Enqueue(index);
+                }
+            }
+
+            while (amountLeftToAdd > 0 && emptyEntryIndices.Count > 0)
+            {
+                int index = emptyEntryIndices.Dequeue();
+                int thisStackSize = Mathf.Min(maxStackSize, amountLeftToAdd);
+                inventoryEntries[index] = new InventoryEntry(item, thisStackSize);
                 indicesToUpdate.Add(index);
-                amountLeftToAdd -= amountAddedToStack;
+                amountLeftToAdd -= thisStackSize;
             }
-            if (amountLeftToAdd < 1)
-            {
-                RefreshSlots(indicesToUpdate.ToArray());
-                return;
-            }
-        }
-
-        // If there are still items to add, add them in empty entries in order from beginning to end.
-        Queue<int> emptyEntryIndices = new Queue<int>();
-        for (int index = 0; index < inventorySize; ++index)
-        {
-            if (inventoryEntries[index] == null)
-            {
-                emptyEntryIndices.Enqueue(index);
-            }
-        }
-
-        while (amountLeftToAdd > 0 && emptyEntryIndices.Count > 0)
-        {
-            int index = emptyEntryIndices.Dequeue();
-            int thisStackSize = Mathf.Min(maxStackSize, amountLeftToAdd);
-            inventoryEntries[index] = new InventoryEntry(item, thisStackSize);
-            indicesToUpdate.Add(index);
-            amountLeftToAdd -= thisStackSize;
         }
 
         if (amountLeftToAdd > 0)
         {
-            Debug.LogWarning($"Tried to add more of the item \"{item.itemName}\" but there was no space left, so the remaining {amountLeftToAdd} item(s) were lost!");
+            // There are still items to add but no room to add them (either because overflow is off or the inventory is completely full)
+            if (amountLeftToAdd == amountToAdd)
+                return InventoryOperationResult.NoSpace(amountLeftToAdd);
+            return InventoryOperationResult.ItemPartiallyAdded(amountLeftToAdd, indicesToUpdate.ToArray());
         }
-
-        RefreshSlots(indicesToUpdate.ToArray());
-        return;
+        return InventoryOperationResult.ItemFullyAdded(indicesToUpdate.ToArray());
     }
 
-    public bool HasItem(InventoryEntry entryToCheck)
+    public InventoryOperationResult PutItemInCursorSlot(Item item, int amount)
     {
-        Item item = entryToCheck.item;
-        // The entry's stackSize is currently not checked here.
-        // If we want to check if we have at least a certain amount of an item, a new function will be written which has the amount to look for that as a parameter.
-        foreach (InventoryEntry entry in inventoryEntries)
-        {
-            if (entry != null && entry.item == item)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
+        if (item == null)
+            throw new ArgumentNullException(nameof(item));
+        if (amount < 0 || amount > item.maxStack)
+            throw new ArgumentOutOfRangeException(nameof(amount), $"Stack size needs to be a number from 0 to the max stack size ({item.maxStack}), given amount was {amount}.");
 
-    public void RegisterUIInventorySlot(InventorySlotUIController slotUIController, int index)
-    {
-        slotUIControllerToIndexMap[slotUIController] = index;
-    }
-
-    public void PutInventoryEntryInCursorSlot(InventoryEntry inventoryEntry)
-    {
+        if (amount == 0)
+            return InventoryOperationResult.NoOperation();
         if (cursorInventoryEntry != null)
-        {
-            Debug.LogWarning("Tried to put something in the cursor inventory slot while it already had something in it.");
-        }
-        itemCursorFollowerController.Activate();
-        cursorInventoryEntry = inventoryEntry;
-        RefreshSlots(CursorSlotIndex);
+            return InventoryOperationResult.NoSpace(amount);
+
+        cursorInventoryEntry = new InventoryEntry(item, amount);
+        InventoryOperationResult result = InventoryOperationResult.PickupToCursor(null);
+        return result;
+    }
+
+    public InventorySlotDisplayInformation GetSlotDisplayInformation(int index)
+    {
+        if ((index < 0 || index >= inventoryEntries.Length) && index != CursorSlotIndex)
+            throw new ArgumentOutOfRangeException(nameof(index), $"Slot index must be either the special value of Inventory.CursorSlotIndex ({CursorSlotIndex}), or a value in the range of the inventory size (0 to {inventoryEntries.Length - 1}); given value was {index}.");
+
+        InventoryEntry entry = (index == CursorSlotIndex) ? cursorInventoryEntry : inventoryEntries[index];
+
+        if (entry == null)
+            return InventorySlotDisplayInformation.Empty(index);
+        return InventorySlotDisplayInformation.Occupied(index, entry.item.itemName, entry.item.icon, entry.stackSize, entry.item.maxStack);
     }
 
     public int InventorySize => inventorySize;
-    public InventoryEntry this[int index]
-    {
-        get
-        {
-            if (index < CursorSlotIndex || index >= inventoryEntries.Length)
-            {
-                throw new System.IndexOutOfRangeException($"Tried to access inventory index {index}; out of range");
-            }
-            if (index == CursorSlotIndex)
-            {
-                return cursorInventoryEntry;
-            }
-
-            return inventoryEntries[index];
-        }
-    }
     public const int CursorSlotIndex = -1;
     public bool ItemInCursorSlot => cursorInventoryEntry != null;
 }
