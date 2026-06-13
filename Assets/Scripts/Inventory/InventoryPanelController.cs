@@ -1,14 +1,12 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
-using System.Collections;
-using System.Collections.Generic;
 
 public class InventoryPanelController : MonoBehaviour
 {
     [SerializeField] private Inventory playerInventory;
+    [SerializeField] private InventoryController inventoryController;
     [SerializeField] private GameObject slotPrefab;
     private GameObject[] inventorySlots;
+
 
     private void OnEnable()
     {
@@ -47,7 +45,7 @@ public class InventoryPanelController : MonoBehaviour
             inventorySlots[index].name = $"Inventory Slot {index}";
             InventorySlotUIController slotUIController = inventorySlots[index].transform.GetComponent<InventorySlotUIController>();
             slotUIController.InputLockProvider = UIManager.Instance;
-            playerInventory.RegisterUIInventorySlot(slotUIController, index);
+            inventoryController.RegisterUIInventorySlot(slotUIController, index);
         }
 
         // Now, put inventory items into their proper slots in the inventory panel, based on their index locations in the inventory itself
@@ -80,5 +78,6 @@ public class InventoryPanelController : MonoBehaviour
             Destroy(child.gameObject);
         }
         inventorySlots = null;
+        inventoryController.ClearAllRegistrations();
     }
 }
